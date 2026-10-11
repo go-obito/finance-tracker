@@ -1,4 +1,9 @@
 # Byte-compiled / optimized / DLL files
+node_modules/
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/coverage/
 __pycache__/
 *.py[codz]
 *$py.class
