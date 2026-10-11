@@ -10,7 +10,7 @@ Node.js 20+ and Express 5 API. MongoDB is authoritative; all persisted business 
 4. Run `npm ci`, then `npm test` and `npm start` from this directory.
 5. The API listens on `http://localhost:3000`; `GET /health` is a non-database liveness endpoint.
 
-The server creates MongoDB indexes at startup and exits if MongoDB is unavailable. No SQLite database or existing application data was present during the repository audit. There is no automatic migration step.
+The server creates MongoDB indexes at startup and exits with a concise diagnostic if MongoDB is unavailable. The default server-selection timeout is 30 seconds and can be changed with `MONGODB_SERVER_SELECTION_TIMEOUT_MS`. No SQLite database or existing application data was present during the repository audit. There is no automatic migration step.
 
 ## API
 
@@ -46,4 +46,4 @@ Savings goals retain schedule versions. Planned contributions are projections; a
 
 ## Tests
 
-`npm test` runs Node's test runner, including financial/import/savings unit tests and MongoDB-backed API integration tests. The integration suite uses `mongodb-memory-server`; its MongoDB platform binary may need to be downloaded the first time the suite runs. Production dependency advisories can be checked with `npm audit --omit=dev`.
+`npm test` runs Node's test runner, including financial, import, savings, API-boundary, and index-definition tests. The current suite does not start a live MongoDB server; validate database operations and index migration against a disposable MongoDB deployment before staging. Production dependency advisories can be checked with `npm audit --omit=dev`.

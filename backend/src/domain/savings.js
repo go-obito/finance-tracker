@@ -81,8 +81,11 @@ export function markPlannedContributions(planned, actuals, missedPeriodPolicy, a
   let paused = false;
   return planned.map((item) => {
     const basePlan = item.plannedPesewas;
-    const plannedPesewas = basePlan + (missedPeriodPolicy === 'carry_forward' ? carriedShortfall : 0);
-    while (actualIndex < sortedActuals.length && new Date(sortedActuals[actualIndex].occurredAt) <= item.dueAt) {
+    const wasPaused = paused;
+    const plannedPesewas = wasPaused ? 0 : basePlan + (missedPeriodPolicy === 'carry_forward' ? carriedShortfall : 0);
+    const dueDayEnd = new Date(item.dueAt);
+    dueDayEnd.setUTCHours(23, 59, 59, 999);
+    while (actualIndex < sortedActuals.length && new Date(sortedActuals[actualIndex].occurredAt) <= dueDayEnd) {
       actualSincePreviousDue += sortedActuals[actualIndex].amountPesewas;
       actualIndex += 1;
     }
@@ -90,8 +93,7 @@ export function markPlannedContributions(planned, actuals, missedPeriodPolicy, a
     const actualPesewas = due ? actualSincePreviousDue : 0;
     if (due) actualSincePreviousDue = 0;
     const shortfallPesewas = due ? Math.max(plannedPesewas - actualPesewas, 0) : 0;
-    let status = due ? (shortfallPesewas === 0 ? 'met' : actualPesewas > 0 ? 'partial' : 'missed') : 'upcoming';
-    if (paused && !due) status = 'paused';
+    let status = wasPaused ? 'paused' : due ? (shortfallPesewas === 0 ? 'met' : actualPesewas > 0 ? 'partial' : 'missed') : 'upcoming';
     if (missedPeriodPolicy === 'carry_forward') carriedShortfall = shortfallPesewas;
     if (missedPeriodPolicy === 'pause' && due && shortfallPesewas > 0) paused = true;
     return { ...item, plannedPesewas, actualPesewas, shortfallPesewas, status };

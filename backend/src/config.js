@@ -6,6 +6,7 @@ const environmentSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   MONGODB_URI: z.string().min(1),
   MONGODB_DATABASE: z.string().min(1).default('finance_tracker'),
+  MONGODB_SERVER_SELECTION_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).default(30_000),
   SESSION_SECRET: z.string().min(32),
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   GOOGLE_CLIENT_ID: z.string().optional(),

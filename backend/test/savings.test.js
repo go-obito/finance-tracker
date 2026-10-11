@@ -28,7 +28,7 @@ test('planned and actual contributions remain distinct and shortfall is explicit
 
 test('missed-period rules expose shortfalls, carry forward, and pause future periods', () => {
   const planned = buildPlannedContributions({ ...goal, missedPeriodPolicy: 'carry_forward' }, new Date('2024-03-31T00:00:00.000Z'));
-  const carried = markPlannedContributions(planned, [{ amountPesewas: 500, occurredAt: new Date('2024-02-01T00:00:00.000Z') }], 'carry_forward', new Date('2024-03-31T00:00:00.000Z'));
+  const carried = markPlannedContributions(planned, [{ amountPesewas: 500, occurredAt: new Date('2024-01-31T12:00:00.000Z') }], 'carry_forward', new Date('2024-03-31T00:00:00.000Z'));
   assert.equal(carried[0].status, 'partial');
   assert.equal(carried[1].plannedPesewas, 1500);
   assert.equal(carried[1].status, 'missed');

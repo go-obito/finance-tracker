@@ -18,18 +18,21 @@ export function createSavingsRouter({ database }) {
     const now = new Date();
     const results = await Promise.all(goals.map(async (goal) => {
       const actuals = await database.collection('contributions').find({ userId: request.userId, goalId: goal._id, deletedAt: null }).toArray();
-      const transactionIds = actuals.flatMap((item) => item.transactionId ? [item.transactionId] : []);
-      const transferIds = actuals.flatMap((item) => item.transferId ? [item.transferId] : []);
+      const transactionIds = actuals.filter((item) => item.sourceType === 'transaction').map((item) => item.sourceId);
+      const transferIds = actuals.filter((item) => item.sourceType === 'transfer').map((item) => item.sourceId);
       const [transactions, transfers] = await Promise.all([
         transactionIds.length ? database.collection('transactions').find({ _id: { $in: transactionIds }, userId: request.userId, deletedAt: null }).toArray() : [],
         transferIds.length ? database.collection('transfers').find({ _id: { $in: transferIds }, userId: request.userId, deletedAt: null }).toArray() : [],
       ]);
-      const sources = new Map([...transactions, ...transfers].map((item) => [item._id, item]));
-      const validContributions = actuals.filter((item) => sources.has(item.sourceId));
-      const sourceRecords = validContributions.map((item) => sources.get(item.sourceId));
+      const sources = new Map([
+        ...transactions.map((item) => [`transaction:${item._id}`, item]),
+        ...transfers.map((item) => [`transfer:${item._id}`, item]),
+      ]);
+      const validContributions = actuals.filter((item) => sources.has(`${item.sourceType}:${item.sourceId}`));
+      const sourceRecords = validContributions.map((item) => sources.get(`${item.sourceType}:${item.sourceId}`));
       const planned = buildGoalPlan(goal, now);
       const plannedWithActuals = markPlannedContributions(planned, validContributions, goal.missedPeriodPolicy, now);
-      return { ...stripId(goal), ...summarizeContributions(goal, planned, sourceRecords), plannedContributions: plannedWithActuals, actualContributions: validContributions.map(stripId) };
+      return { ...stripId(goal), ...summarizeContributions(goal, plannedWithActuals, sourceRecords), plannedContributions: plannedWithActuals, actualContributions: validContributions.map(stripId) };
     }));
     response.json(results);
   }));

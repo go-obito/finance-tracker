@@ -3,12 +3,17 @@ import { MongoClient } from 'mongodb';
 export async function connectDatabase(config) {
   const client = new MongoClient(config.MONGODB_URI, {
     appName: 'finance-tracker-api',
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: config.MONGODB_SERVER_SELECTION_TIMEOUT_MS,
   });
-  await client.connect();
-  const database = client.db(config.MONGODB_DATABASE);
-  await ensureIndexes(database);
-  return { client, database };
+  try {
+    await client.connect();
+    const database = client.db(config.MONGODB_DATABASE);
+    await ensureIndexes(database);
+    return { client, database };
+  } catch (error) {
+    await client.close().catch(() => {});
+    throw error;
+  }
 }
 
 export async function ensureIndexes(database) {
@@ -29,8 +34,15 @@ export async function ensureIndexes(database) {
     database.collection('categories').createIndex({ userId: 1, name: 1 }, { unique: true, partialFilterExpression: { archivedAt: null } }),
     database.collection('imports').createIndex({ userId: 1, createdAt: -1 }),
     database.collection('savingsGoals').createIndex({ userId: 1, status: 1, createdAt: -1 }),
-    database.collection('contributions').createIndex({ userId: 1, transactionId: 1 }, { unique: true, partialFilterExpression: { transactionId: { $type: 'string' }, deletedAt: null } }),
-    database.collection('contributions').createIndex({ userId: 1, transferId: 1 }, { unique: true, partialFilterExpression: { transferId: { $type: 'string' }, deletedAt: null } }),
     database.collection('contributions').createIndex({ userId: 1, sourceId: 1 }, { unique: true, partialFilterExpression: { sourceId: { $type: 'string' }, deletedAt: null } }),
   ]);
+
+  const contributions = database.collection('contributions');
+  for (const obsoleteIndex of ['userId_1_transactionId_1', 'userId_1_transferId_1']) {
+    try {
+      await contributions.dropIndex(obsoleteIndex);
+    } catch (error) {
+      if (error?.code !== 27) throw error;
+    }
+  }
 }
